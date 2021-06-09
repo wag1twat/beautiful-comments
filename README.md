@@ -1,46 +1,51 @@
-# Getting Started with Create React App
+# Почему Redux это плохо?
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Проблемы Redux:
 
-## Available Scripts
+1. Слишком много сервисного кода
+2. Слишком сложно, порог вхождения в проект выше чем на реализации стейт-менеджмента на иструментах React.
+3. Слишком много зависимостей извне (redux, react-redux, redux-thunk, redux-saga, redux-zero для уменьшения бойлерплейта,
+   reselect для мемоизации селекторов ). Необходимо это все изучить, а главное ограничения всего этого многообразия сторонних решений.
+4. Один глобальный стор для всего приложения. Мы бы хотели, чтоб наши бизнес-сущности ничего не знали друг о друге.
+5. Слишком много паттернов (переиспользование экшенов, дробление редьюсеров, immutable.js и т.д.)
+6. Сторонний DI, постоянное описывания useDispatch + useSelector / mapStateToProps + mapDispatchToProps
 
-In the project directory, you can run:
+## Какой же выход?
 
-### `yarn start`
+Мы можем огранизовать наш стейт-менеджер на инстурментах React и ни капли не потярем от этого, а только приобретем.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+1. Минимум сервисного кода, только API React.
+2. Ниже порог вхождения, пункт 1.
+3. Никаких сторонних зависимостей, только React.
+4. Нет глобального стора. Все части независимы друг от друга, обеспечивают паттерн Single Responsibility (один хук - одна операция).
+5. Два паттерна - React Hooks & React Context API
+6. DI React API.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Для начала посмотрим на минималистичную реализацию Redux.
 
-### `yarn test`
+my-provider.js
+my-redux.j
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Очень много магии (здесь ее видно, но при использовании самого Redux - вы этого не видите - о которой начинающие разработчики даже не задумываются), очень много преобразований, нет асинхронности из коробки (необходимо описывать applyMiddleware)
 
-### `yarn build`
+Это еще минимизированная версия. А еще action types, action creators в чистом Redux.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Что происходит в этом коде? (my-redux.j)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Initial store state.
+2. multipleReducer - pure function, которая примет стейт и некий экшн, обработает его и вернет стейт.
+3. numbersReducer - pure function, которая примет стейт и некий экшн, обработает его и вернет стейт.
+4. combineReducers - функция, которая примет наш объект с ключами и значениями (редьсеры) и спамит из него один редьюсер (ключу редьюсера присвоится его вызов).
+5. applyMiddleware - функция, которая примет некий middleware, вернет функцию createStoreWithMiddleware, которая принимает createStore и возвращается функцию, которая принимает rootReducer и Initial store state, создается store и возращает dispatch с примененным middleware и getState.
+6. Функция createStore, тут все просто, на вход она принимает rootReducer, Initial store state и возвращается dispatch и getState.
+7. Функция thunk, принимает store, возвращает функцию, которая принимает dispatch и возвращает функцию, которая принимает action.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Это вся концепция Redux.
 
-### `yarn eject`
+Но сколько необходимо знать, чтоб понимать ее и сколько мест, где может возникнуть ошибка?
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Что происходит в my-provider.js?
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Для простоты примера, я создал хук, который будет обновлять некое состояние и вызываться при каждом dispatch. Это необходимо, чтоб при обновлении нашего store его потребители получали обновленный store.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+Просто ли разобраться в этом человеку, который пришел на проект и до этого не использовал Redux?
