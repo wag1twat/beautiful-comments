@@ -8,7 +8,8 @@
    reselect для мемоизации селекторов ). Необходимо это все изучить, а главное ограничения всего этого многообразия сторонних решений.
 4. Один глобальный стор для всего приложения. Мы бы хотели, чтоб наши бизнес-сущности ничего не знали друг о друге.
 5. Слишком много паттернов (переиспользование экшенов, дробление редьюсеров, immutable.js и т.д.)
-6. Сторонний DI, постоянное описывания useDispatch + useSelector / mapStateToProps + mapDispatchToProps
+6. Сторонний DI, но явный, постоянное описывания useDispatch + useSelector / mapStateToProps + mapDispatchToProps.
+7. Множество истоничков истины.
 
 ## Какой же выход?
 
@@ -19,7 +20,9 @@
 3. Никаких сторонних зависимостей, только React.
 4. Нет глобального стора. Все части независимы друг от друга, обеспечивают паттерн Single Responsibility (один хук - одна операция).
 5. Два паттерна - React Hooks & React Context API
-6. DI React API.
+6. Единственный источник истины.
+
+Минусом неявный DI.
 
 ## Для начала посмотрим на минималистичную реализацию Redux.
 
@@ -191,3 +194,70 @@ export const useStore = () => {
 Для простоты примера, я создал хук, который будет обновлять некое состояние и вызываться при каждом dispatch. Это необходимо, чтоб при обновлении нашего store его потребители получали обновленный store.
 
 Просто ли разобраться в этом человеку, который пришел на проект и до этого не использовал Redux?
+
+## Что я предлагаю?
+
+Отказаться от всех стейт-менеджеров и реализовывать управление только в рамках React.
+
+Задайте себе вопрос зачем вам Redux?
+
+Делать запросы на сервер и хранить данные?
+
+Это легко реализовать простым хуком, в этом примере useGet:
+
+```javascript
+import axios, { AxiosRequestConfig } from "axios";
+import { useCallback, useEffect, useState } from "react";
+
+export const useGet = <ResponseData = any>(url: string) => {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const [result, setResult] = useState<ResponseData>();
+
+  const [error, setError] = useState<string>();
+
+  const get = useCallback(
+    (params?: AxiosRequestConfig["params"]) => {
+      setIsLoading(true);
+      setError(undefined);
+      setResult(undefined);
+      return axios
+        .get<ResponseData>(url, { params })
+        .then((response) => {
+          setResult(response.data);
+          setError(undefined);
+        })
+        .catch((e) => {
+          setResult(undefined);
+          setError(e.message);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    },
+    [url]
+  );
+
+  useEffect(() => {
+    return () => {
+      setIsLoading(false);
+      setError(undefined);
+      setResult(undefined);
+    };
+  }, []);
+
+  return { get, isLoading, error, result };
+};
+```
+
+### Плюсы.
+
+1. Signle Responsibility.
+2. Immutable.
+3. API React.
+4. Легко комбинировать несколько хуков.
+5. Единственный источник истины.
+6. При необходимости нескольким потребителям легко использовать в Provider.
+7. Нет сервисного кода.
+8. Хуки не знают ничего друг о друге.
+9. Явный DI в хук через параметры.
