@@ -32,6 +32,8 @@ my-redux.js
 
 Что происходит в этом коде? (my-redux.js)
 
+1. Initial store state.
+
 ```javascript
 const initialState = {
   multiple: {
@@ -41,7 +43,8 @@ const initialState = {
 };
 ```
 
-1. Initial store state.
+2. multipleReducer - pure function, которая примет стейт и некий экшн, обработает его и вернет стейт.
+3. numbersReducer - pure function, которая примет стейт и некий экшн, обработает его и вернет стейт.
 
 ```javascript
 const multipleReducer = (
@@ -70,8 +73,7 @@ const numbersReducer = (state = { number: 0 }, action) => {
 };
 ```
 
-2. multipleReducer - pure function, которая примет стейт и некий экшн, обработает его и вернет стейт.
-3. numbersReducer - pure function, которая примет стейт и некий экшн, обработает его и вернет стейт.
+4. combineReducers - функция, которая примет наш объект с ключами и значениями (редьсеры) и спамит из него один редьюсер (ключу редьюсера присвоится его вызов).
 
 ```javascript
 function combineReducers(reducersMap) {
@@ -91,7 +93,7 @@ const rootReducer = combineReducers({
 });
 ```
 
-4. combineReducers - функция, которая примет наш объект с ключами и значениями (редьсеры) и спамит из него один редьюсер (ключу редьюсера присвоится его вызов).
+5. applyMiddleware - функция, которая примет некий middleware, вернет функцию createStoreWithMiddleware, которая принимает createStore и возвращается функцию, которая принимает rootReducer и Initial store state, создается store и возращает dispatch с примененным middleware и getState.
 
 ```javascript
 function applyMiddleware(middleware) {
@@ -109,7 +111,7 @@ function applyMiddleware(middleware) {
 }
 ```
 
-5. applyMiddleware - функция, которая примет некий middleware, вернет функцию createStoreWithMiddleware, которая принимает createStore и возвращается функцию, которая принимает rootReducer и Initial store state, создается store и возращает dispatch с примененным middleware и getState.
+6. Функция createStore, тут все просто, на вход она принимает rootReducer, Initial store state и возвращается dispatch и getState.
 
 ```javascript
 export const createStore = function (reducer, _initialState = initialState) {
@@ -124,7 +126,7 @@ export const createStore = function (reducer, _initialState = initialState) {
 };
 ```
 
-6. Функция createStore, тут все просто, на вход она принимает rootReducer, Initial store state и возвращается dispatch и getState.
+7. Функция thunk, принимает store, возвращает функцию, которая принимает dispatch и возвращает функцию, которая принимает action.
 
 ```javascript
 const thunk = (store) => (dispatch) => (action) => {
@@ -135,15 +137,13 @@ const thunk = (store) => (dispatch) => (action) => {
 };
 ```
 
-7. Функция thunk, принимает store, возвращает функцию, которая принимает dispatch и возвращает функцию, которая принимает action.
+8. Создание store.
 
 ```javascript
 const createStoreWithMiddleware = applyMiddleware(thunk)(createStore);
 
 export const store = createStoreWithMiddleware(rootReducer);
 ```
-
-8. Создание store.
 
 Это вся концепция Redux.
 
