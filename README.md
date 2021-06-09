@@ -250,7 +250,7 @@ export const useGet = <ResponseData = any>(url: string) => {
 };
 ```
 
-### Плюсы.
+### Плюсы
 
 1. Signle Responsibility.
 2. Immutable.
@@ -260,3 +260,12 @@ export const useGet = <ResponseData = any>(url: string) => {
 6. При необходимости нескольким потребителям легко использовать в Provider.
 7. Нет сервисного кода.
 8. Хуки не знают ничего друг о друге.
+
+### Минусы
+
+1. Возможные фантомные перендеры, но если грамотно построить систему на React Context API этого не будет.
+2. Неявный DI. Хуки работают внутри компонента, но это можно исправить HOC'ом или комбинацией HOC'ов и передавать результат вызова хука через props.
+
+```javascript
+export const Modal = recompose(withUsers, withPosts, withComments)(Component);
+```
