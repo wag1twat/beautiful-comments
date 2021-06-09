@@ -24,21 +24,126 @@
 ## Для начала посмотрим на минималистичную реализацию Redux.
 
 my-provider.js
-my-redux.j
+my-redux.js
 
 Очень много магии (здесь ее видно, но при использовании самого Redux - вы этого не видите - о которой начинающие разработчики даже не задумываются), очень много преобразований, нет асинхронности из коробки (необходимо описывать applyMiddleware)
 
 Это еще минимизированная версия. А еще action types, action creators в чистом Redux.
 
-Что происходит в этом коде? (my-redux.j)
+Что происходит в этом коде? (my-redux.js)
+
+```javascript
+const initialState = {
+  multiple: {
+    number: 0,
+  },
+  numbers: { number: 0 },
+};
+```
 
 1. Initial store state.
+
+```javascript
+const multipleReducer = (
+  state = {
+    number: 0,
+  },
+  action
+) => {
+  switch (action.type) {
+    case "MULTIPLE": {
+      return { ...state, number: action.payload * action.step };
+    }
+    default:
+      return state;
+  }
+};
+
+const numbersReducer = (state = { number: 0 }, action) => {
+  switch (action.type) {
+    case "INCREMENT": {
+      return { ...state, number: action.payload };
+    }
+    default:
+      return state;
+  }
+};
+```
+
 2. multipleReducer - pure function, которая примет стейт и некий экшн, обработает его и вернет стейт.
 3. numbersReducer - pure function, которая примет стейт и некий экшн, обработает его и вернет стейт.
+
+```javascript
+function combineReducers(reducersMap) {
+  return function combinationReducer(state, action) {
+    const nextState = {};
+
+    Object.entries(reducersMap).forEach(([key, reducer]) => {
+      nextState[key] = reducer(state[key], action);
+    });
+    return nextState;
+  };
+}
+
+const rootReducer = combineReducers({
+  multiple: multipleReducer,
+  numbers: numbersReducer,
+});
+```
+
 4. combineReducers - функция, которая примет наш объект с ключами и значениями (редьсеры) и спамит из него один редьюсер (ключу редьюсера присвоится его вызов).
+
+```javascript
+function applyMiddleware(middleware) {
+  return function createStoreWithMiddleware(createStore) {
+    return (reducer, state) => {
+      const store = createStore(reducer, state);
+
+      return {
+        dispatch: (forceUpdate) => (action) =>
+          middleware(store)(store.dispatch(forceUpdate))(action),
+        getState: store.getState,
+      };
+    };
+  };
+}
+```
+
 5. applyMiddleware - функция, которая примет некий middleware, вернет функцию createStoreWithMiddleware, которая принимает createStore и возвращается функцию, которая принимает rootReducer и Initial store state, создается store и возращает dispatch с примененным middleware и getState.
+
+```javascript
+export const createStore = function (reducer, _initialState = initialState) {
+  let state = _initialState;
+  return {
+    dispatch: (forceUpdate) => (action) => {
+      state = reducer(state, action);
+      forceUpdate();
+    },
+    getState: () => state,
+  };
+};
+```
+
 6. Функция createStore, тут все просто, на вход она принимает rootReducer, Initial store state и возвращается dispatch и getState.
+
+```javascript
+const thunk = (store) => (dispatch) => (action) => {
+  if (typeof action === "function") {
+    return action(store.getState);
+  }
+  return dispatch(action);
+};
+```
+
 7. Функция thunk, принимает store, возвращает функцию, которая принимает dispatch и возвращает функцию, которая принимает action.
+
+```javascript
+const createStoreWithMiddleware = applyMiddleware(thunk)(createStore);
+
+export const store = createStoreWithMiddleware(rootReducer);
+```
+
+8. Создание store.
 
 Это вся концепция Redux.
 
