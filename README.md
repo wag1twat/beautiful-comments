@@ -46,6 +46,43 @@ my-redux.j
 
 Что происходит в my-provider.js?
 
+```javascript
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useReducer,
+} from "react";
+
+const ctx = createContext();
+
+const forceUpdateReducer = (i) => i + 1;
+
+export const useForceUpdate = () => {
+  const [, forceUpdate] = useReducer(forceUpdateReducer, 0);
+  return forceUpdate;
+};
+
+export const StoreProvider = ({ store, ...props }) => {
+  const forceUpdate = useForceUpdate();
+
+  const { dispatch, getState } = store;
+  return (
+    <ctx.Provider
+      value={{
+        dispatch: useCallback(dispatch(forceUpdate), []),
+        getState: useCallback(getState, []),
+      }}
+      {...props}
+    />
+  );
+};
+
+export const useStore = () => {
+  return useContext(ctx);
+};
+```
+
 Для простоты примера, я создал хук, который будет обновлять некое состояние и вызываться при каждом dispatch. Это необходимо, чтоб при обновлении нашего store его потребители получали обновленный store.
 
 Просто ли разобраться в этом человеку, который пришел на проект и до этого не использовал Redux?
